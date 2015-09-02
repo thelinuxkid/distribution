@@ -32,9 +32,9 @@ func debugTime() func() {
 	}
 
 	f := runtime.FuncForPC(pc)
-	fmt.Printf("starting %s\n", f.Name())
+	log.Debug("calling: ", f.Name())
 	return func() {
-		fmt.Printf("%s took %s\n", f.Name(), time.Now().Sub(before))
+		log.Debugf("%s took %s", f.Name(), time.Now().Sub(before))
 	}
 }
 
@@ -59,7 +59,7 @@ type driver struct {
 }
 
 func (d *driver) publishHash(hash string) {
-	log.Error("PUBLISH: ", hash)
+	log.Debug("publish hash: ", hash)
 	d.publish <- hash
 }
 
@@ -87,7 +87,7 @@ func (d *driver) runPublisher(ipnskey string) chan<- string {
 
 				err := d.publishChild(ipnskey, "docker-registry", k)
 				if err != nil {
-					log.Error("failed to publish: ", err)
+					log.Error("failed to publish after long wait: ", err)
 				}
 			case <-short:
 				k := topub
@@ -97,7 +97,7 @@ func (d *driver) runPublisher(ipnskey string) chan<- string {
 
 				err := d.publishChild(ipnskey, "docker-registry", k)
 				if err != nil {
-					log.Error("failed to publish: ", err)
+					log.Error("failed to publish after short wait: ", err)
 				}
 			}
 		}
@@ -118,7 +118,7 @@ func (d *driver) publishChild(ipnskey, dirname, hash string) error {
 
 	err = d.shell.Publish(ipnskey, "/ipfs/"+newIpnsRoot)
 	if err != nil {
-		log.Error("failed to publish: ", err)
+		log.Error("failed to publish child: ", err)
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func New(addr string, root string) *Driver {
 	shell := shell.NewShell(addr)
 	info, err := shell.ID()
 	if err != nil {
-		log.Error("error constructing node: ", err)
+		log.Error("failed to construct node: ", err)
 		return nil
 	}
 	if strings.HasPrefix(root, "/ipns/local/") {
@@ -177,8 +177,8 @@ func New(addr string, root string) *Driver {
 		return nil
 	}
 
-	log.Error("ID: ", info.ID)
-	log.Error("IPNSROOT: ", ipnsroot)
+	log.Debug("node id: ", info.ID)
+	log.Debug("ipns root: ", ipnsroot)
 	hash, err := shell.ResolvePath(ipnsroot + "/docker-registry")
 	if err != nil {
 		if !strings.Contains(err.Error(), "no link named") {
@@ -233,7 +233,7 @@ func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
 		return nil, err
 	}
 
-	log.Debugf("Got content %s: %s", path, content)
+	log.Debugf("got content %s: %s", path, content)
 
 	return content, nil
 }
@@ -315,7 +315,7 @@ func (d *driver) WriteStream(ctx context.Context, path string, offset int64, rea
 		return 0, err
 	}
 
-	log.Errorf("Wrote content (after %d) %s: %s", nn, path, contentHash)
+	log.Debugf("wrote stream (after %d) %s: %s", nn, path, contentHash)
 
 	// strip off leading slash
 	path = path[1:]
@@ -413,7 +413,6 @@ func (d *driver) Move(ctx context.Context, source string, dest string) error {
 	}
 
 	d.roothash = newroot
-	fmt.Println("HASH AFTER MOVE: ", newroot)
 	d.publishHash(newroot)
 	return nil
 }
@@ -423,15 +422,14 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 	defer debugTime()()
 	d.rootlock.Lock()
 	defer d.rootlock.Unlock()
-	log.Error("roothash: ", d.roothash)
+	log.Debug("roothash: ", d.roothash)
 	newParentHash, err := d.shell.Patch(d.roothash, "rm-link", path[1:])
 	if err != nil {
-		log.Error("delete err: ", err)
 		if err.Error() == "merkledag: not found" {
-			fmt.Println("PATHNOTFOUND HAPPY HAPPY JOY JOY")
+			log.Error("failed to find path: ", err)
 			return storagedriver.PathNotFoundError{Path: path}
 		} else {
-			fmt.Println("GOT A BAD ERROR: ", err)
+			log.Error("failed to delete: ", err)
 			return err
 		}
 	}
