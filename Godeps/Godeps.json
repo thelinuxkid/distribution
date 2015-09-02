@@ -130,6 +130,14 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "bef53efd0c76e49e6de55ead051f886bea7e9420"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs",
+			"Rev": "3fc1854d241aeab706c72211ecb8a76e38788cec"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs-shell",
+			"Rev": "1071518f1f90c25a22f893702ffe86544b2f7a8d"
 		}
 	]
 }

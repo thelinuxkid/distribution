@@ -17,7 +17,7 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/base"
 	"github.com/docker/distribution/registry/storage/driver/factory"
 
-	shell "github.com/whyrusleeping/ipfs-shell"
+	shell "github.com/ipfs/go-ipfs-shell"
 )
 
 const driverName = "ipfs"
