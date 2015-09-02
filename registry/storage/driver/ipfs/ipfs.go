@@ -400,9 +400,8 @@ func (d *driver) Move(ctx context.Context, source string, dest string) error {
 	if err != nil {
 		if err.Error() == "merkledag: not found" {
 			return storagedriver.PathNotFoundError{Path: source}
-		} else {
-			return err
 		}
+		return err
 	}
 
 	// remove leading slash
@@ -428,10 +427,9 @@ func (d *driver) Delete(ctx context.Context, path string) error {
 		if err.Error() == "merkledag: not found" {
 			log.Error("failed to find path: ", err)
 			return storagedriver.PathNotFoundError{Path: path}
-		} else {
-			log.Error("failed to delete: ", err)
-			return err
 		}
+		log.Error("failed to delete: ", err)
+		return err
 	}
 
 	d.roothash = newParentHash
