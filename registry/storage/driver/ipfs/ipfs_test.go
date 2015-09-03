@@ -2,6 +2,8 @@ package ipfs
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"testing"
 
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
@@ -14,22 +16,40 @@ import (
 )
 
 // Hook up gocheck into the "go test" runner.
-func BadTest(t *testing.T) { TestingT(t) }
+func Test(t *testing.T) { TestingT(t) }
+
+var testAddr, testRoot string
+var skipCheck func() string
 
 func init() {
-	addr := "localhost:5001" //os.Getenv("REGISTRY_STORAGE_IPFS_ADDR")
-	root := "/ipns/local/"   // os.Getenv("REGISTRY_STORAGE_IPFS_ROOT")
+	testAddr = os.Getenv("IPFS_ADDR")
+	testRoot = os.Getenv("IPFS_ROOT")
 
-	testsuites.RegisterSuite(func() (storagedriver.StorageDriver, error) {
-		return New(addr, root), nil
-	}, testsuites.NeverSkip)
+	ipfsDriverConstructor := func() (storagedriver.StorageDriver, error) {
+		return New(testAddr, testRoot), nil
+	}
+
+	// Skip ipfs storage driver tests if environment variable parameters are not provided
+	skipCheck = func() string {
+		if testAddr == "" || testRoot == "" {
+			return fmt.Sprintf("Must set IPFS_ADDR and IPFS_ROOT environment variables to run IPFS tests")
+		}
+		return ""
+	}
 
 	// BUG(stevvooe): IPC is broken so we're disabling for now. Will revisit later.
-	// testsuites.RegisterIPCSuite(driverName, map[string]string{"rootdirectory": root}, testsuites.NeverSkip)
+	// testsuites.RegisterIPCSuite(driverName, map[string]string{"rootdirectory": root}, skipCheck)
+	testsuites.RegisterSuite(ipfsDriverConstructor, skipCheck)
 }
 
+// TODO this is here until testing with the storage testsuite is fixed. To test run:
+// go test -test.short -run 'TestBasic' github.com/docker/distribution/registry/storage/driver/ipfs
 func TestBasic(t *testing.T) {
-	d := New("localhost:5001", "/ipns/local")
+	if skipCheck() != "" {
+		t.Skip(skipCheck())
+	}
+
+	d := New(testAddr, testRoot)
 
 	err := d.PutContent(context.Background(), "/a/b/c", []byte("hello world"))
 	if err != nil {
