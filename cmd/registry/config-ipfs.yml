@@ -1,0 +1,17 @@
+version: 0.1
+log:
+  level: debug
+  fields:
+    service: registry
+    environment: development
+storage:
+    cache:
+        blobdescriptor: inmemory
+    ipfs:
+        # To be used with docker-compose. See http://git.io/vGQuo
+        addr: ipfs_daemon:5001
+
+http:
+    addr: :5000
+    headers:
+        X-Content-Type-Options: [nosniff]
