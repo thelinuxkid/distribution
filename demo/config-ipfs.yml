@@ -8,8 +8,7 @@ storage:
     cache:
         blobdescriptor: inmemory
     ipfs:
-        # To be used with docker-compose. See http://git.io/vGQuo
-        addr: ipfs_daemon:5001
+        addr: localhost:5001
 
 http:
     addr: :5000

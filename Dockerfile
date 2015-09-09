@@ -1,23 +1,28 @@
-FROM golang:1.4
+FROM jbenet/go-ipfs
 
-RUN apt-get update && \
-    apt-get install -y librados-dev apache2-utils && \
-    rm -rf /var/lib/apt/lists/*
+USER root
 
-ENV DISTRIBUTION_DIR /go/src/github.com/docker/distribution
-ENV GOPATH $DISTRIBUTION_DIR/Godeps/_workspace:$GOPATH
-ENV DOCKER_BUILDTAGS include_rados include_oss
+RUN apk add apache2-utils make go=1.4.2-r0 git
 
-WORKDIR $DISTRIBUTION_DIR
-COPY . $DISTRIBUTION_DIR
-COPY cmd/registry/config-ipfs.yml /etc/docker/registry/config.yml
+ENV DIST_DIR /go/src/github.com/docker/distribution
+ENV GOPATH /go
+ENV PATH $GOPATH/bin:$PATH
+ENV GOPATH $DIST_DIR/Godeps/_workspace:$GOPATH
+
+WORKDIR $DIST_DIR
+COPY . $DIST_DIR
+COPY demo/config-ipfs.yml /etc/docker/registry/config.yml
+COPY demo/start_registry /usr/local/bin/start_registry
+COPY demo/supervisord.conf /etc/supervisord.conf
 RUN make PREFIX=/go clean binaries
-# Wait for the ipfs API to start
-RUN echo '#!/bin/bash\necho waiting 10 secs...\nsleep 10 && registry "$@"' > /usr/bin/entrypoint.sh
-RUN chmod +x /usr/bin/entrypoint.sh
 
 VOLUME ["/var/lib/registry"]
 EXPOSE 5000
 
-ENTRYPOINT ["/usr/bin/entrypoint.sh"]
-CMD ["/etc/docker/registry/config.yml"]
+RUN apk add supervisor
+RUN mkdir -p /supervisord/log
+RUN chown -R ipfs:ipfs /supervisord
+WORKDIR /supervisord
+
+ENTRYPOINT ["/usr/bin/supervisord"]
+CMD ["-c", "/etc/supervisord.conf"]
