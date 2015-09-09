@@ -1,8 +1,8 @@
 FROM jbenet/go-ipfs
 
-USER root
+ENV IPFS_LOGGING info
 
-RUN apk add apache2-utils make go=1.4.2-r0 git
+USER root
 
 ENV DIST_DIR /go/src/github.com/docker/distribution
 ENV GOPATH /go
@@ -14,7 +14,10 @@ COPY . $DIST_DIR
 COPY demo/config-ipfs.yml /etc/docker/registry/config.yml
 COPY demo/start_registry /usr/local/bin/start_registry
 COPY demo/supervisord.conf /etc/supervisord.conf
+
+RUN apk add apache2-utils make go=1.4.2-r0 git
 RUN make PREFIX=/go clean binaries
+RUN apk del apache2-utils make git
 
 VOLUME ["/var/lib/registry"]
 EXPOSE 5000
